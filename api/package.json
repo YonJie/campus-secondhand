@@ -2,9 +2,17 @@
   "name": "campus-secondhand-api",
   "private": true,
   "type": "commonjs",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
   "dependencies": {
     "@neondatabase/serverless": "0.10.4",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.7",
+    "vitest": "^3.0.5"
   }
 }

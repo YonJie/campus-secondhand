@@ -51,6 +51,15 @@ npm run dev
 
 本地联调与 Vercel 部署细节待补充。
 
+## 测试
+
+轻量核心链路测试说明见 [TESTING.md](./TESTING.md)。
+
+```bash
+cd api && npm test
+cd web && npm test
+```
+
 ## 部署
 
 推送到已连接 Vercel 的 Git 仓库后，将按 `vercel.json` 构建前端并部署：

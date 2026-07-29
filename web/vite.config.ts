@@ -1,9 +1,10 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 
 /**
- * Vite 配置：Vue 插件 + 路径别名 + API 代理占位
+ * Vite 配置：Vue 插件 + 路径别名 + API 代理占位 + vitest
  */
 export default defineConfig({
   plugins: [vue()],
@@ -19,5 +20,9 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
+  test: {
+    environment: 'happy-dom',
+    include: ['src/__tests__/**/*.spec.ts'],
   },
 })
