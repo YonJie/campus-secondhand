@@ -1,0 +1,55 @@
+---
+description: 校园二手交易平台项目约定（API、数据库、前端、鉴权）
+alwaysApply: true
+---
+
+# 校园二手交易平台 — 项目规则
+
+## 项目背景
+
+校园二手交易平台。技术栈：**Vue3 + Vite（web）**、**Vercel Serverless Functions（api）**、**Neon Postgres（db）**，部署于 Vercel。
+
+## API 响应
+
+- 接口统一使用 **JSON**
+- 响应体统一结构：
+
+```json
+{ "success": true, "data": {}, "message": "可选说明" }
+```
+
+- `success`: boolean；`data`: any；`message?`: string
+
+## 命名与字段转换
+
+- 数据库字段统一 **snake_case**（如 `created_at`、`user_id`）
+- 返回给前端统一转为 **camelCase**（如 `createdAt`、`userId`）
+- 禁止在接口层直接把 snake_case 原样返回给前端
+
+## 鉴权（强制）
+
+- 所有需要鉴权的接口，统一从 `api/_lib/auth.js` 引入 `verifyToken`
+- **禁止**在各接口文件中重复编写 JWT 校验逻辑
+
+## 数据库连接（强制）
+
+- 统一从 `api/_lib/db.js` 引入数据库连接/客户端
+- **禁止**在每个接口文件中各自 `new` 连接
+
+## 前端请求
+
+- Axios 统一封装在 `web/src/utils/request.ts`
+- 自动携带 `Authorization` 头
+- 统一错误提示使用 Element Plus 的 `ElMessage`
+- 业务代码禁止另起未封装的 Axios 实例发请求（除非有明确例外说明）
+
+## 组件约定
+
+- 组件命名：**PascalCase**（如 `ProductCard.vue`）
+- 页面级组件：`web/src/views`
+- 通用组件：`web/src/components`
+
+## API 契约同步
+
+- 若修改涉及接口字段/路径/响应结构变化，必须同步更新根目录 `docs/api-contract.md`
+- 新增接口时先在契约文档中补充说明（可与实现同批提交）

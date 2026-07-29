@@ -1,0 +1,130 @@
+---
+description: 校园集市视觉设计系统（色彩/字体/签名组件/Element Plus 主题）
+globs: web/**/*.{vue,css,scss,ts,tsx,html}
+alwaysApply: false
+---
+
+# 校园集市 · 视觉设计系统
+
+> 设计概念：以「校园布告栏 / 图钉便签」为视觉主线——闲置商品像一张张被图钉钉在布告栏上的便签纸。签名元素是**倾斜的贴纸卡片 + 缺角价签**，其余部分保持克制，不要额外发挥。
+
+## 落地要求（强制）
+
+开发前端时必须遵守：
+
+1. 颜色、字体、圆角、阴影必须使用本文档定义的 token，禁止随意取用新色值；
+2. 把第一节色彩表转成 CSS 变量写入 `web/src/styles/tokens.css`，并在全局 import；
+3. 商品卡片（`ItemCard.vue`）与状态标签（`StatusTag.vue`）必须还原第四节签名组件规范（贴纸旋转 + 缺角价签），不可省略或简化为普通 Badge；
+4. 使用 Element Plus 时，覆盖 `--el-color-primary` 等主题变量指向本文档 token，避免默认蓝紫与设计系统冲突。
+
+---
+
+## 一、色彩（Color）
+
+| Token | 色值 | 用途 |
+|---|---|---|
+| `--ink` | `#1E2A38` | 主文字色 / 主按钮底色 / 侧边导航底色 |
+| `--ink-soft` | `#5C6672` | 次要文字、说明文字、meta 信息 |
+| `--paper` | `#F3F4EF` | 页面背景（冷调浅灰白，不用奶油色 #F4F1EA） |
+| `--paper-raised` | `#FFFFFF` | 卡片/面板背景，与页面背景形成层次 |
+| `--line` | `#DBDCD3` | 边框、分割线 |
+| `--yellow` | `#FFC229` | 主品牌强调色（图钉/主要CTA按钮/"已预订"标签） |
+| `--yellow-deep` | `#E8A800` | 强调色 hover 态 |
+| `--mint` | `#2FB88B` | 成功/"在售中"状态色 |
+| `--mint-soft` | `#E3F5EE` | mint 的浅底色（用于选中态背景） |
+| `--coral` | `#FF6452` | 警示/举报/危险操作色 |
+| `--coral-soft` | `#FFE9E5` | coral 的浅底色 |
+| `--pin` | `#8C6A4F` | 图钉小圆点专用色，仅用于卡片左上角的"钉子"装饰，不作他用 |
+
+**禁止事项**：不要引入奶油色 `#F4F1EA` + 赤陶色 `#D97757` 组合，不要用纯黑背景+荧光色，不要用报纸式细线排版。
+
+**状态色映射（业务语义固定）**：
+
+| 商品状态 status | 标签文案 | 使用色 |
+|---|---|---|
+| `on_sale` | 在售中 | `--mint` |
+| `reserved` | 已预订 | `--yellow` |
+| `sold` | 已售出 | `#B7BDB4`（中性灰） |
+| `removed` | 已下架 | `--line` 底 + `--ink-soft` 字 |
+
+---
+
+## 二、字体（Typography）
+
+| 角色 | 字体 | 引入方式 |
+|---|---|---|
+| Display（标题 h1/h2/品牌字） | `Space Grotesk`（500/600/700） | Google Fonts |
+| Body（段落、按钮、表单） | `Inter`（400/500/600） | Google Fonts |
+| Mono（价格、时间戳、状态码、表格数字） | `JetBrains Mono`（500/700） | Google Fonts |
+
+```html
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+```
+
+**使用规则**：
+
+- 价格必须用 `JetBrains Mono`，数字前加半角 `¥`（不用全角 `￥`）。
+- 页面标题（page-title）用 `Space Grotesk` 700，26px，`letter-spacing: -0.01em`。
+- eyebrow（如 `Home / 商品列表`）用 `JetBrains Mono`，11px，大写，字距 `0.08em`。
+
+---
+
+## 三、间距与圆角（Spacing & Radius）
+
+| Token | 值 | 用途 |
+|---|---|---|
+| 卡片圆角 | `12px` | `.item-card` |
+| 面板圆角 | `14px` | `.panel` |
+| 按钮圆角 | `9px` / `7px`（`.btn-sm`） | 按钮 |
+| 输入框圆角 | `9px` | input / select / textarea |
+| 图片圆角 | `8px`（缩略图） / `14px`（详情大图） | — |
+| 卡片内边距 | `12px`（商品卡片） / `22px`（大面板） | — |
+| 网格间距 | `20px` | `.grid` |
+
+**阴影（仅一种）**：
+
+```css
+--shadow: 0 1px 0 rgba(30,42,56,0.04), 0 8px 20px -12px rgba(30,42,56,0.18);
+```
+
+---
+
+## 四、签名组件规范（必须严格还原）
+
+### 4.1 贴纸卡片（`.item-card`）
+
+- 奇数卡片 `rotate(-0.6deg)`，偶数卡片 `rotate(0.6deg)`；
+- hover：`rotate(0deg) + translateY(-3px)`，阴影加深；
+- 左上角 `::before`：10px 圆点（`--pin` + 投影）模拟图钉；**仅商品卡片使用**。
+
+### 4.2 缺角价签（`.tag`）
+
+- `clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%)`；
+- 左侧尖角处 `::after`：3px 白色圆点模拟打孔；
+- 字体：`JetBrains Mono` 700，10.5px，字距 `0.02em`；
+- 状态色见第一节；禁止擅自新增第五种颜色标签。
+
+### 4.3 侧边导航（`.rail`）
+
+- 底色 `--ink`；这是页面里唯一的深色重音区；
+- 激活项：`--yellow` 底 + `--ink` 字；其余项：`#C9CDD1`。
+
+---
+
+## 五、组件状态规范
+
+| 组件 | 默认态 | Hover | Active/Focus |
+|---|---|---|---|
+| `.btn-primary` | `--ink` 底，白字 | `#12202f` | — |
+| `.btn-accent` | `--yellow` 底，`--ink` 字 | `--yellow-deep` | — |
+| `.btn-ghost` | 透明底 + `--line` 描边 | 描边变 `--ink-soft` | — |
+| 输入框 | `--line` 描边 | — | focus 描边变 `--ink`（禁用系统蓝焦点色） |
+| `.icon-btn.fav` | 描边态 | — | 激活：`--coral-soft` 底 + `--coral` |
+
+---
+
+## 六、响应式
+
+- `860px` 以下：详情页 `.detail-layout` 单列堆叠；
+- `.grid`：`repeat(auto-fill, minmax(210px, 1fr))`；
+- 移动端 `.rail`：抽屉或底部 Tab，token 保持一致，不要另起一套配色。
