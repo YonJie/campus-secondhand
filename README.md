@@ -42,9 +42,23 @@ campus-secondhand/
 
 **切勿将 `.env` 提交到 Git。**
 
-本地 `vercel dev` / 前端代理联调时，同样依赖上述变量（由 Vercel CLI 或根目录 `.env` 注入到 Serverless Functions）。
+本地开发时同样依赖上述变量（由 `api/dev-server.js` 从根目录 `.env` 加载）。
 
-### 启动前端
+### 本地联调（需同时启动 API + 前端）
+
+前端 Vite 会把 `/api` 代理到 `http://localhost:3000`。**只启动前端时会出现 `ECONNREFUSED` / `http proxy error`**，因为 3000 端口没有 API 服务。
+
+**终端 1 — API（仓库根下的 api 目录）：**
+
+```bash
+cd api
+npm install
+npm run dev
+```
+
+看到 `[dev-api] http://localhost:3000` 即表示接口已就绪。
+
+**终端 2 — 前端：**
 
 ```bash
 cd web
@@ -52,11 +66,12 @@ npm install
 npm run dev
 ```
 
-浏览器访问终端提示的本地地址（默认 `http://localhost:5173`）。开发服务器会将 `/api` 代理到 `http://localhost:3000`（可与 `vercel dev` 联调）。
+浏览器访问 `http://localhost:5173`。
 
 ### 后端 / 数据库
 
-- `api/`：Serverless Functions，路径与 URL 对应（如 `api/auth/login.js` → `POST /api/auth/login`）
+- `api/`：Serverless Functions；本地用 `npm run dev` 模拟，线上由 Vercel 识别 `api/` 目录
+- 路径与 URL 对应（如 `api/auth/login.js` → `POST /api/auth/login`）
 - `db/schema.sql`：在 Neon SQL Editor 中执行以初始化表结构
 
 ## 测试

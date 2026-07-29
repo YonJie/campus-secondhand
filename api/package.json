@@ -3,6 +3,7 @@
   "private": true,
   "type": "commonjs",
   "scripts": {
+    "dev": "node dev-server.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },
