@@ -76,6 +76,7 @@ onMounted(load)
             class="row__thumb"
             :src="item.imageUrl || 'https://placehold.co/192x144/f3f4ef/5c6672?text=No+Image'"
             :alt="item.title"
+            referrerpolicy="no-referrer"
           />
           <div class="row__body">
             <div class="row__title-line">

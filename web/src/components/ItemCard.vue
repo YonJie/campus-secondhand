@@ -21,6 +21,7 @@ defineProps<{
         :src="item.imageUrl"
         :alt="item.title"
         loading="lazy"
+        referrerpolicy="no-referrer"
       />
       <div v-else class="item-card__placeholder">暂无图片</div>
     </div>

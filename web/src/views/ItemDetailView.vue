@@ -200,6 +200,7 @@ onMounted(load)
             v-if="item.imageUrl"
             :src="item.imageUrl"
             :alt="item.title"
+            referrerpolicy="no-referrer"
           />
           <div v-else class="detail-media__placeholder">暂无图片</div>
         </div>

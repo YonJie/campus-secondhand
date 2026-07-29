@@ -15,6 +15,8 @@ const itemId = computed(() => String(route.params.id || ''))
 const loading = ref(false)
 const saving = ref(false)
 const categories = ref<Category[]>([])
+/** 图片预览是否加载失败（常见于防盗链） */
+const imagePreviewFailed = ref(false)
 
 const form = reactive({
   title: '',
@@ -23,6 +25,20 @@ const form = reactive({
   categoryId: '',
   imageUrl: '',
 })
+
+watch(
+  () => form.imageUrl,
+  () => {
+    imagePreviewFailed.value = false
+  },
+)
+
+/**
+ * 预览图加载失败时展示提示
+ */
+function onPreviewError() {
+  imagePreviewFailed.value = true
+}
 
 /**
  * 重置表单为空
@@ -162,10 +178,27 @@ onMounted(bootstrap)
           </el-form-item>
         </div>
         <el-form-item label="图片 URL">
-          <el-input v-model="form.imageUrl" placeholder="https://…" />
+          <el-input
+            v-model="form.imageUrl"
+            placeholder="https://…（请使用可公开访问的直链）"
+          />
+          <p class="form-hint">
+            百度图片等搜索结果链常带防盗链，可能无法预览或展示。建议使用图床直链（如
+            placehold.co、imgur、或自有 CDN）。
+          </p>
         </el-form-item>
-        <div v-if="form.imageUrl" class="preview">
-          <img :src="form.imageUrl" alt="预览" />
+        <div v-if="form.imageUrl.trim()" class="preview">
+          <img
+            v-show="!imagePreviewFailed"
+            :src="form.imageUrl.trim()"
+            alt="预览"
+            referrerpolicy="no-referrer"
+            @load="imagePreviewFailed = false"
+            @error="onPreviewError"
+          />
+          <div v-if="imagePreviewFailed" class="preview__error">
+            无法加载该图片，请换用可直链访问的地址后再试
+          </div>
         </div>
       </el-form>
 
@@ -198,12 +231,20 @@ onMounted(bootstrap)
   margin-top: 8px;
 }
 
+.form-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
 .preview {
   margin-bottom: 16px;
   border-radius: 8px;
   overflow: hidden;
   max-width: 280px;
   border: 1px solid var(--line);
+  background: var(--paper);
 }
 
 .preview img {
@@ -211,6 +252,17 @@ onMounted(bootstrap)
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: cover;
+}
+
+.preview__error {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-soft);
 }
 
 @media (max-width: 860px) {
