@@ -8,25 +8,29 @@ const router = useRouter()
 const route = useRoute()
 const loading = ref(false)
 const form = reactive({
-  username: 'campus_seller',
-  password: '123456',
+  username: '',
+  password: '',
 })
 
 /**
  * 提交登录
  */
 async function onSubmit() {
+  if (!form.username.trim() || !form.password) {
+    ElMessage.warning('请输入用户名和密码')
+    return
+  }
   loading.value = true
   try {
-    const res = await login(form.username, form.password)
-    if (!res.success) {
-      ElMessage.error(res.message || '登录失败')
-      return
+    const res = await login(form.username.trim(), form.password)
+    if (res.success) {
+      applyAuthResult(res.data)
+      ElMessage.success(res.message || '登录成功')
+      const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
+      router.replace(redirect || '/')
     }
-    applyAuthResult(res.data)
-    ElMessage.success(res.message || '登录成功')
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
-    router.replace(redirect || '/')
+  } catch {
+    /* 401/错误由拦截器提示 */
   } finally {
     loading.value = false
   }
@@ -38,7 +42,7 @@ async function onSubmit() {
     <div class="auth-panel panel">
       <p class="eyebrow">Account / Sign in</p>
       <h1 class="page-title">登录校园集市</h1>
-      <p class="auth-desc">Mock 模式：任意账号可登录。使用 <code>campus_seller</code> 可体验卖家「选为买家」。</p>
+      <p class="auth-desc">登录后可发布闲置、留言沟通与收藏心仪好物。</p>
 
       <el-form label-position="top" @submit.prevent="onSubmit">
         <el-form-item label="用户名">
@@ -87,14 +91,6 @@ async function onSubmit() {
   color: var(--ink-soft);
   font-size: 14px;
   line-height: 1.5;
-}
-
-.auth-desc code {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  background: var(--mint-soft);
-  padding: 1px 6px;
-  border-radius: 4px;
 }
 
 .auth-switch {

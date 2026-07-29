@@ -14,15 +14,19 @@ const filters = reactive({
   keyword: '',
   categoryId: '',
   page: 1,
-  pageSize: 8,
+  pageSize: 10,
 })
 
 /**
  * 加载分类
  */
 async function loadCategories() {
-  const res = await fetchCategories()
-  if (res.success) categories.value = res.data
+  try {
+    const res = await fetchCategories()
+    if (res.success) categories.value = res.data
+  } catch {
+    categories.value = []
+  }
 }
 
 /**
@@ -39,8 +43,11 @@ async function loadItems() {
     })
     if (res.success) {
       items.value = res.data.list
-      total.value = res.data.total
+      total.value = res.data.pagination.total
     }
+  } catch {
+    items.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
@@ -103,16 +110,17 @@ onMounted(async () => {
       <button type="button" class="btn btn-primary" @click="onSearch">搜索</button>
     </div>
 
-    <div v-loading="loading" class="grid">
-      <ItemCard
-        v-for="(item, index) in items"
-        :key="item.id"
-        :item="item"
-        :index="index"
-      />
+    <div v-loading="loading" class="grid-wrap">
+      <div v-if="items.length" class="grid">
+        <ItemCard
+          v-for="(item, index) in items"
+          :key="item.id"
+          :item="item"
+          :index="index"
+        />
+      </div>
+      <el-empty v-else-if="!loading" description="暂无商品" />
     </div>
-
-    <el-empty v-if="!loading && items.length === 0" description="暂无商品" />
 
     <div v-if="total > filters.pageSize" class="pager">
       <el-pagination
@@ -154,6 +162,10 @@ onMounted(async () => {
 
 .toolbar__select {
   width: 160px;
+}
+
+.grid-wrap {
+  min-height: 160px;
 }
 
 .pager {

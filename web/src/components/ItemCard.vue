@@ -16,7 +16,13 @@ defineProps<{
     :to="`/items/${item.id}`"
   >
     <div class="item-card__media">
-      <img :src="item.imageUrl" :alt="item.title" loading="lazy" />
+      <img
+        v-if="item.imageUrl"
+        :src="item.imageUrl"
+        :alt="item.title"
+        loading="lazy"
+      />
+      <div v-else class="item-card__placeholder">暂无图片</div>
     </div>
     <div class="item-card__body">
       <div class="item-card__meta">
@@ -80,6 +86,15 @@ defineProps<{
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+.item-card__placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--ink-soft);
+  font-size: 13px;
 }
 
 .item-card__body {

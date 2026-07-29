@@ -8,12 +8,18 @@ export interface ApiResponse<T = unknown> {
   message?: string
 }
 
-/** 分页结果 */
-export interface Paginated<T> {
-  list: T[]
-  total: number
+/** 分页元信息（与契约 pagination 一致） */
+export interface Pagination {
   page: number
   pageSize: number
+  total: number
+  totalPages: number
+}
+
+/** 分页列表结果 */
+export interface Paginated<T> {
+  list: T[]
+  pagination: Pagination
 }
 
 /** 用户信息 */
@@ -41,15 +47,15 @@ export interface Item {
   id: string
   sellerId: string
   title: string
-  description: string
+  description: string | null
   price: number
-  categoryId: string
+  categoryId: string | null
   status: ItemStatus
-  imageUrl: string
+  imageUrl: string | null
   createdAt: string
   updatedAt: string
   sellerUsername?: string
-  categoryName?: string
+  categoryName?: string | null
   isFavorited?: boolean
 }
 
@@ -71,16 +77,16 @@ export interface ItemListQuery {
   status?: string
   page?: number
   pageSize?: number
-  /** 仅当前用户发布的商品 */
+  /** 仅当前用户发布的商品（需鉴权） */
   mine?: boolean
 }
 
 /** 创建/更新商品表单 */
 export interface ItemFormPayload {
-  title: string
-  description?: string
-  price: number
-  categoryId: string
-  imageUrl?: string
+  title?: string
+  description?: string | null
+  price?: number
+  categoryId?: string | null
+  imageUrl?: string | null
   status?: ItemStatus
 }

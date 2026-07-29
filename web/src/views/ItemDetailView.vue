@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { fetchItemDetail } from '../api/items'
 import { fetchMessages, postMessage, selectBuyer } from '../api/messages'
-import { addFavorite, removeFavorite } from '../api/favorites'
+import { addFavorite, fetchFavorites, removeFavorite } from '../api/favorites'
 import { submitReport } from '../api/reports'
 import StatusTag from '../components/StatusTag.vue'
 import ReportDialog from '../components/ReportDialog.vue'
@@ -18,6 +18,7 @@ const userStore = useUserStore()
 const loading = ref(false)
 const item = ref<Item | null>(null)
 const messages = ref<Message[]>([])
+const messagesHint = ref('')
 const content = ref('')
 const reportOpen = ref(false)
 const submitting = ref(false)
@@ -28,24 +29,69 @@ const isSeller = computed(
 )
 
 /**
- * 加载详情与留言
+ * 加载详情、收藏态与留言
  */
 async function load() {
   loading.value = true
+  messagesHint.value = ''
   try {
-    const [itemRes, msgRes] = await Promise.all([
-      fetchItemDetail(itemId.value),
-      fetchMessages(itemId.value),
-    ])
+    const itemRes = await fetchItemDetail(itemId.value)
     if (!itemRes.success) {
-      ElMessage.error(itemRes.message || '加载失败')
       item.value = null
       return
     }
-    item.value = itemRes.data
-    messages.value = msgRes.success ? msgRes.data : []
+    item.value = { ...itemRes.data, isFavorited: false }
+
+    if (userStore.isLoggedIn) {
+      await Promise.all([loadFavoriteState(), loadMessages()])
+    } else {
+      messages.value = []
+      messagesHint.value = '登录后可查看与发表留言'
+    }
+  } catch {
+    item.value = null
+    messages.value = []
   } finally {
     loading.value = false
+  }
+}
+
+/**
+ * 用收藏列表判断当前商品是否已收藏
+ */
+async function loadFavoriteState() {
+  if (!item.value) return
+  try {
+    const res = await fetchFavorites()
+    if (res.success) {
+      item.value.isFavorited = res.data.some((i) => i.id === item.value!.id)
+    }
+  } catch {
+    /* 收藏态失败不阻塞详情 */
+  }
+}
+
+/**
+ * 加载留言（需鉴权；403 时给出提示）
+ */
+async function loadMessages() {
+  try {
+    const msgRes = await fetchMessages(itemId.value)
+    if (msgRes.success) {
+      messages.value = msgRes.data
+      messagesHint.value = ''
+    }
+  } catch (err: unknown) {
+    messages.value = []
+    const status =
+      err && typeof err === 'object' && 'response' in err
+        ? (err as { response?: { status?: number } }).response?.status
+        : undefined
+    if (status === 403) {
+      messagesHint.value = '发表留言后即可查看全部留言'
+    } else if (status !== 401) {
+      messagesHint.value = '留言加载失败'
+    }
   }
 }
 
@@ -62,15 +108,17 @@ function ensureLogin(): boolean {
  */
 async function toggleFavorite() {
   if (!item.value || !ensureLogin()) return
-  const favorited = item.value.isFavorited
-  const res = favorited
-    ? await removeFavorite(item.value.id)
-    : await addFavorite(item.value.id)
-  if (res.success) {
-    item.value.isFavorited = !favorited
-    ElMessage.success(res.message || (favorited ? '已取消收藏' : '已收藏'))
-  } else {
-    ElMessage.error(res.message || '操作失败')
+  const favorited = Boolean(item.value.isFavorited)
+  try {
+    const res = favorited
+      ? await removeFavorite(item.value.id)
+      : await addFavorite(item.value.id)
+    if (res.success) {
+      item.value.isFavorited = !favorited
+      ElMessage.success(res.message || (favorited ? '已取消收藏' : '已收藏'))
+    }
+  } catch {
+    /* 错误由 request 拦截器提示 */
   }
 }
 
@@ -79,16 +127,20 @@ async function toggleFavorite() {
  */
 async function sendMessage() {
   if (!ensureLogin()) return
+  if (!content.value.trim()) {
+    ElMessage.warning('请输入留言内容')
+    return
+  }
   submitting.value = true
   try {
     const res = await postMessage(itemId.value, content.value)
-    if (!res.success) {
-      ElMessage.error(res.message || '留言失败')
-      return
+    if (res.success) {
+      content.value = ''
+      ElMessage.success(res.message || '留言成功')
+      await loadMessages()
     }
-    content.value = ''
-    messages.value.push(res.data)
-    ElMessage.success(res.message || '留言成功')
+  } catch {
+    /* 拦截器已提示 */
   } finally {
     submitting.value = false
   }
@@ -98,18 +150,20 @@ async function sendMessage() {
  * 选为买家
  */
 async function onSelectBuyer(messageId: string) {
-  const res = await selectBuyer(messageId)
-  if (!res.success) {
-    ElMessage.error(res.message || '操作失败')
-    return
+  try {
+    const res = await selectBuyer(messageId)
+    if (res.success) {
+      item.value = res.data.item
+      messages.value = messages.value.map((m) =>
+        m.itemId === res.data.item.id
+          ? { ...m, isSelected: m.id === messageId }
+          : m,
+      )
+      ElMessage.success(res.message || '已选为买家')
+    }
+  } catch {
+    /* 拦截器已提示 */
   }
-  item.value = res.data.item
-  messages.value = messages.value.map((m) =>
-    m.itemId === res.data.item.id
-      ? { ...m, isSelected: m.id === messageId }
-      : m,
-  )
-  ElMessage.success(res.message || '已选为买家')
 }
 
 /**
@@ -117,13 +171,19 @@ async function onSelectBuyer(messageId: string) {
  */
 async function onReport(reason: string) {
   if (!ensureLogin()) return
-  const res = await submitReport(itemId.value, reason)
-  if (!res.success) {
-    ElMessage.error(res.message || '提交失败')
+  if (!reason.trim()) {
+    ElMessage.warning('请填写举报理由')
     return
   }
-  reportOpen.value = false
-  ElMessage.success(res.message || '举报已提交')
+  try {
+    const res = await submitReport(itemId.value, reason)
+    if (res.success) {
+      reportOpen.value = false
+      ElMessage.success(res.message || '举报已提交')
+    }
+  } catch {
+    /* 拦截器已提示 */
+  }
 }
 
 watch(itemId, load)
@@ -136,7 +196,12 @@ onMounted(load)
       <p class="eyebrow">Item / {{ item.categoryName || '详情' }}</p>
       <div class="detail-layout">
         <div class="detail-media">
-          <img :src="item.imageUrl" :alt="item.title" />
+          <img
+            v-if="item.imageUrl"
+            :src="item.imageUrl"
+            :alt="item.title"
+          />
+          <div v-else class="detail-media__placeholder">暂无图片</div>
         </div>
 
         <div class="detail-info panel">
@@ -192,7 +257,11 @@ onMounted(load)
             </button>
           </li>
         </ul>
-        <el-empty v-else description="还没有留言，来打个招呼吧" :image-size="72" />
+        <el-empty
+          v-else
+          :description="messagesHint || '还没有留言，来打个招呼吧'"
+          :image-size="72"
+        />
 
         <div class="msg-compose">
           <el-input
@@ -244,6 +313,14 @@ onMounted(load)
   object-fit: cover;
   display: block;
   min-height: 320px;
+}
+
+.detail-media__placeholder {
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-soft);
+  background: var(--paper);
 }
 
 .detail-info__top {

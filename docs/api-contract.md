@@ -36,17 +36,100 @@
 
 ## 接口列表
 
+### 0. 用户注册
+
+- **方法 / 路径**：`POST /api/auth/register`
+- **鉴权**：否
+- **Body（JSON）**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| username | string | 是 | 2–64 字符，唯一 |
+| password | string | 是 | 至少 6 位 |
+
+**响应示例**（`201`）：
+
+```json
+{
+  "success": true,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "id": "11111111-2222-3333-4444-555555555555",
+      "username": "alice",
+      "avatarUrl": null,
+      "createdAt": "2026-07-29T02:00:00.000Z"
+    }
+  },
+  "message": "注册成功"
+}
+```
+
+---
+
+### 0.1 用户登录
+
+- **方法 / 路径**：`POST /api/auth/login`
+- **鉴权**：否
+- **Body（JSON）**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| username | string | 是 | 用户名 |
+| password | string | 是 | 密码 |
+
+**响应示例**：
+
+```json
+{
+  "success": true,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "id": "11111111-2222-3333-4444-555555555555",
+      "username": "alice",
+      "avatarUrl": null,
+      "createdAt": "2026-07-29T02:00:00.000Z"
+    }
+  },
+  "message": "登录成功"
+}
+```
+
+用户名或密码错误时：`401`。
+
+---
+
+### 0.2 分类列表
+
+- **方法 / 路径**：`GET /api/categories`
+- **鉴权**：否
+
+**响应示例**：
+
+```json
+{
+  "success": true,
+  "data": [
+    { "id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", "name": "教材" }
+  ]
+}
+```
+
+---
+
 ### 1. 商品列表
 
 - **方法 / 路径**：`GET /api/items`
-- **鉴权**：否
+- **鉴权**：仅当 `mine=true` 时需要
 - **Query 参数**：
 
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | keyword | string | 否 | 标题模糊搜索 |
 | categoryId | uuid | 否 | 分类筛选 |
-| status | string | 否 | 单状态筛选；不传时默认只返回 `on_sale`、`reserved` |
+| status | string | 否 | 单状态筛选；不传时：公开列表默认 `on_sale`+`reserved`；`mine=true` 时默认全部状态 |
+| mine | boolean | 否 | `true`/`1` 时仅返回当前登录用户发布的商品（需鉴权） |
 | page | number | 否 | 页码，默认 `1` |
 | pageSize | number | 否 | 每页条数，默认 `10`，最大 `50` |
 

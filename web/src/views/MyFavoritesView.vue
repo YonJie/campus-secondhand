@@ -16,6 +16,8 @@ async function load() {
   try {
     const res = await fetchFavorites()
     if (res.success) items.value = res.data
+  } catch {
+    items.value = []
   } finally {
     loading.value = false
   }
@@ -25,13 +27,15 @@ async function load() {
  * 取消收藏并刷新
  */
 async function unfavorite(item: Item) {
-  const res = await removeFavorite(item.id)
-  if (!res.success) {
-    ElMessage.error(res.message || '取消失败')
-    return
+  try {
+    const res = await removeFavorite(item.id)
+    if (res.success) {
+      items.value = items.value.filter((i) => i.id !== item.id)
+      ElMessage.success(res.message || '已取消收藏')
+    }
+  } catch {
+    /* 拦截器已提示 */
   }
-  items.value = items.value.filter((i) => i.id !== item.id)
-  ElMessage.success(res.message || '已取消收藏')
 }
 
 onMounted(load)
@@ -43,16 +47,17 @@ onMounted(load)
     <h1 class="page-title">收藏夹</h1>
     <p class="favorites__lead">想要的闲置先钉在这里，别让它溜走。</p>
 
-    <div v-loading="loading" class="grid">
-      <div v-for="(item, index) in items" :key="item.id" class="fav-wrap">
-        <ItemCard :item="item" :index="index" />
-        <button type="button" class="btn btn-sm btn-ghost fav-wrap__btn" @click="unfavorite(item)">
-          取消收藏
-        </button>
+    <div v-loading="loading" class="fav-body">
+      <div v-if="items.length" class="grid">
+        <div v-for="(item, index) in items" :key="item.id" class="fav-wrap">
+          <ItemCard :item="item" :index="index" />
+          <button type="button" class="btn btn-sm btn-ghost fav-wrap__btn" @click="unfavorite(item)">
+            取消收藏
+          </button>
+        </div>
       </div>
+      <el-empty v-else-if="!loading" description="收藏夹还是空的" />
     </div>
-
-    <el-empty v-if="!loading && items.length === 0" description="收藏夹还是空的" />
   </div>
 </template>
 
@@ -61,6 +66,10 @@ onMounted(load)
   margin: -4px 0 22px;
   color: var(--ink-soft);
   font-size: 14px;
+}
+
+.fav-body {
+  min-height: 160px;
 }
 
 .fav-wrap {

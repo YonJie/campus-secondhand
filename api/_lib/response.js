@@ -79,6 +79,21 @@ function mapMessage(row) {
 }
 
 /**
+ * 将用户行转为前端 camelCase 结构（不含密码）。
+ * @param {Record<string, unknown>} row
+ * @returns {Record<string, unknown>}
+ */
+function mapUser(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    username: row.username,
+    avatarUrl: row.avatar_url ?? null,
+    createdAt: row.created_at,
+  };
+}
+
+/**
  * 成功响应。
  * @param {import('http').ServerResponse} res
  * @param {unknown} data
@@ -131,6 +146,7 @@ module.exports = {
   toCamelCase,
   mapItem,
   mapMessage,
+  mapUser,
   ok,
   fail,
   handleError,

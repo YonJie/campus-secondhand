@@ -25,6 +25,8 @@ async function load() {
   try {
     const res = await fetchItems({ mine: true, page: 1, pageSize: 50 })
     if (res.success) items.value = res.data.list
+  } catch {
+    items.value = []
   } finally {
     loading.value = false
   }
@@ -34,14 +36,15 @@ async function load() {
  * 修改商品状态
  */
 async function onStatusChange(item: Item, status: ItemStatus) {
-  const res = await updateItem(item.id, { status })
-  if (!res.success) {
-    ElMessage.error(res.message || '更新失败')
+  try {
+    const res = await updateItem(item.id, { status })
+    if (res.success) {
+      item.status = res.data.status
+      ElMessage.success(res.message || '状态已更新')
+    }
+  } catch {
     await load()
-    return
   }
-  item.status = res.data.status
-  ElMessage.success(res.message || '状态已更新')
 }
 
 /**
@@ -67,40 +70,49 @@ onMounted(load)
     </header>
 
     <div v-loading="loading" class="list">
-      <article v-for="item in items" :key="item.id" class="row panel">
-        <img class="row__thumb" :src="item.imageUrl" :alt="item.title" />
-        <div class="row__body">
-          <div class="row__title-line">
-            <h3>{{ item.title }}</h3>
-            <StatusTag :status="item.status" />
+      <template v-if="items.length">
+        <article v-for="item in items" :key="item.id" class="row panel">
+          <img
+            class="row__thumb"
+            :src="item.imageUrl || 'https://placehold.co/192x144/f3f4ef/5c6672?text=No+Image'"
+            :alt="item.title"
+          />
+          <div class="row__body">
+            <div class="row__title-line">
+              <h3>{{ item.title }}</h3>
+              <StatusTag :status="item.status" />
+            </div>
+            <p class="row__price">¥{{ Number(item.price).toFixed(2) }}</p>
+            <p class="row__meta">
+              {{ item.categoryName || '未分类' }} · 更新于
+              {{ new Date(item.updatedAt).toLocaleString() }}
+            </p>
           </div>
-          <p class="row__price">¥{{ Number(item.price).toFixed(2) }}</p>
-          <p class="row__meta">{{ item.categoryName }} · 更新于 {{ new Date(item.updatedAt).toLocaleString() }}</p>
-        </div>
-        <div class="row__actions">
-          <el-select
-            :model-value="item.status"
-            size="small"
-            style="width: 120px"
-            @change="handleStatusSelect(item, $event)"
-          >
-            <el-option
-              v-for="opt in statusOptions"
-              :key="opt.value"
-              :label="opt.label"
-              :value="opt.value"
-            />
-          </el-select>
-          <button type="button" class="btn btn-sm btn-ghost" @click="router.push(`/items/${item.id}`)">
-            查看
-          </button>
-          <button type="button" class="btn btn-sm btn-primary" @click="router.push(`/items/${item.id}/edit`)">
-            编辑
-          </button>
-        </div>
-      </article>
+          <div class="row__actions">
+            <el-select
+              :model-value="item.status"
+              size="small"
+              style="width: 120px"
+              @change="handleStatusSelect(item, $event)"
+            >
+              <el-option
+                v-for="opt in statusOptions"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+            <button type="button" class="btn btn-sm btn-ghost" @click="router.push(`/items/${item.id}`)">
+              查看
+            </button>
+            <button type="button" class="btn btn-sm btn-primary" @click="router.push(`/items/${item.id}/edit`)">
+              编辑
+            </button>
+          </div>
+        </article>
+      </template>
 
-      <el-empty v-if="!loading && items.length === 0" description="还没有发布过商品" />
+      <el-empty v-else-if="!loading" description="还没有发布过商品" />
     </div>
   </div>
 </template>
@@ -118,6 +130,7 @@ onMounted(load)
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-height: 120px;
 }
 
 .row {

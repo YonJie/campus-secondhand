@@ -16,20 +16,28 @@ const form = reactive({
  * 提交注册
  */
 async function onSubmit() {
+  if (!form.username.trim()) {
+    ElMessage.warning('请输入用户名')
+    return
+  }
+  if (form.password.length < 6) {
+    ElMessage.warning('密码至少 6 位')
+    return
+  }
   if (form.password !== form.confirm) {
     ElMessage.warning('两次输入的密码不一致')
     return
   }
   loading.value = true
   try {
-    const res = await register(form.username, form.password)
-    if (!res.success) {
-      ElMessage.error(res.message || '注册失败')
-      return
+    const res = await register(form.username.trim(), form.password)
+    if (res.success) {
+      applyAuthResult(res.data)
+      ElMessage.success(res.message || '注册成功')
+      router.replace('/')
     }
-    applyAuthResult(res.data)
-    ElMessage.success(res.message || '注册成功')
-    router.replace('/')
+  } catch {
+    /* 拦截器已提示 */
   } finally {
     loading.value = false
   }
@@ -48,7 +56,7 @@ async function onSubmit() {
           <el-input v-model="form.username" placeholder="设置用户名" />
         </el-form-item>
         <el-form-item label="密码">
-          <el-input v-model="form.password" type="password" show-password placeholder="设置密码" />
+          <el-input v-model="form.password" type="password" show-password placeholder="至少 6 位" />
         </el-form-item>
         <el-form-item label="确认密码">
           <el-input

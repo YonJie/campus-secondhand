@@ -49,18 +49,19 @@ async function bootstrap() {
     if (isEdit.value) {
       const res = await fetchItemDetail(itemId.value)
       if (!res.success) {
-        ElMessage.error(res.message || '商品不存在')
         router.replace('/my/items')
         return
       }
       form.title = res.data.title
-      form.description = res.data.description
+      form.description = res.data.description || ''
       form.price = Number(res.data.price)
-      form.categoryId = res.data.categoryId
-      form.imageUrl = res.data.imageUrl
+      form.categoryId = res.data.categoryId || ''
+      form.imageUrl = res.data.imageUrl || ''
     } else {
       resetForm()
     }
+  } catch {
+    if (isEdit.value) router.replace('/my/items')
   } finally {
     loading.value = false
   }
@@ -78,30 +79,26 @@ async function onSubmit() {
     ElMessage.warning('价格须大于 0')
     return
   }
-  if (!form.categoryId) {
-    ElMessage.warning('请选择分类')
-    return
-  }
 
   saving.value = true
   try {
     const payload = {
       title: form.title.trim(),
-      description: form.description.trim(),
+      description: form.description.trim() || null,
       price: Number(form.price),
-      categoryId: form.categoryId,
-      imageUrl: form.imageUrl.trim(),
+      categoryId: form.categoryId || null,
+      imageUrl: form.imageUrl.trim() || null,
     }
     const res = isEdit.value
       ? await updateItem(itemId.value, payload)
       : await createItem(payload)
 
-    if (!res.success) {
-      ElMessage.error(res.message || '保存失败')
-      return
+    if (res.success) {
+      ElMessage.success(res.message || '保存成功')
+      router.push(`/items/${res.data.id}`)
     }
-    ElMessage.success(res.message || '保存成功')
-    router.push(`/items/${res.data.id}`)
+  } catch {
+    /* 拦截器已提示 */
   } finally {
     saving.value = false
   }
@@ -148,8 +145,13 @@ onMounted(bootstrap)
               style="width: 100%"
             />
           </el-form-item>
-          <el-form-item label="分类" required class="form-row__item">
-            <el-select v-model="form.categoryId" placeholder="选择分类" style="width: 100%">
+          <el-form-item label="分类" class="form-row__item">
+            <el-select
+              v-model="form.categoryId"
+              clearable
+              placeholder="选择分类"
+              style="width: 100%"
+            >
               <el-option
                 v-for="c in categories"
                 :key="c.id"

@@ -38,6 +38,8 @@ async function listItems(req, res) {
   const keyword = pickQuery(q, 'keyword');
   const categoryId = pickQuery(q, 'categoryId');
   const status = pickQuery(q, 'status');
+  const mineRaw = pickQuery(q, 'mine').toLowerCase();
+  const mine = mineRaw === '1' || mineRaw === 'true';
   const page = Math.max(1, parseInt(pickQuery(q, 'page') || '1', 10) || 1);
   const pageSize = Math.min(
     MAX_PAGE_SIZE,
@@ -45,11 +47,18 @@ async function listItems(req, res) {
   );
   const offset = (page - 1) * pageSize;
 
+  /** @type {string | null} */
+  let sellerId = null;
+  if (mine) {
+    sellerId = verifyToken(req);
+  }
+
   if (status && !ITEM_STATUSES.includes(status)) {
     return fail(res, 400, `status 无效，可选值：${ITEM_STATUSES.join(', ')}`);
   }
 
-  const statuses = status ? [status] : DEFAULT_STATUSES;
+  // 我的发布：默认返回全部状态；公开列表：默认 on_sale + reserved
+  const statuses = status ? [status] : mine ? [...ITEM_STATUSES] : DEFAULT_STATUSES;
   const keywordPattern = keyword ? `%${keyword}%` : null;
   const categoryFilter = categoryId || null;
 
@@ -74,6 +83,7 @@ async function listItems(req, res) {
     WHERE i.status = ANY(${statuses}::item_status[])
       AND (${keywordPattern}::text IS NULL OR i.title ILIKE ${keywordPattern})
       AND (${categoryFilter}::uuid IS NULL OR i.category_id = ${categoryFilter}::uuid)
+      AND (${sellerId}::uuid IS NULL OR i.seller_id = ${sellerId}::uuid)
     ORDER BY i.created_at DESC
     LIMIT ${pageSize} OFFSET ${offset}
   `;
