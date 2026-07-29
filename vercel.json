@@ -1,8 +1,12 @@
 {
-  "buildCommand": "cd web && npm install && npm run build",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm install --prefix ./api && npm install --prefix ./web",
+  "buildCommand": "npm run build --prefix ./web",
   "outputDirectory": "web/dist",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ]
 }
