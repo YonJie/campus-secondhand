@@ -1,0 +1,42 @@
+/**
+ * 校园集市设计 Token（对齐 .cursor/rules/design-tokens.mdc）
+ */
+:root {
+  --ink: #1e2a38;
+  --ink-soft: #5c6672;
+  --paper: #f3f4ef;
+  --paper-raised: #ffffff;
+  --line: #dbdcd3;
+  --yellow: #ffc229;
+  --yellow-deep: #e8a800;
+  --mint: #2fb88b;
+  --mint-soft: #e3f5ee;
+  --coral: #ff6452;
+  --coral-soft: #ffe9e5;
+  --pin: #8c6a4f;
+  --sold-gray: #b7bdb4;
+  --shadow: 0 1px 0 rgba(30, 42, 56, 0.04), 0 8px 20px -12px rgba(30, 42, 56, 0.18);
+
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Element Plus 主题覆盖 */
+  --el-color-primary: var(--ink);
+  --el-color-primary-light-3: #3a4756;
+  --el-color-primary-light-5: #5c6672;
+  --el-color-primary-light-7: #8a929b;
+  --el-color-primary-light-8: #b0b5bb;
+  --el-color-primary-light-9: #d7dadc;
+  --el-color-primary-dark-2: #12202f;
+  --el-color-success: var(--mint);
+  --el-color-warning: var(--yellow-deep);
+  --el-color-danger: var(--coral);
+  --el-border-radius-base: 9px;
+  --el-font-family: var(--font-body);
+  --el-bg-color: var(--paper-raised);
+  --el-text-color-primary: var(--ink);
+  --el-text-color-regular: var(--ink-soft);
+  --el-border-color: var(--line);
+  --el-fill-color-blank: var(--paper-raised);
+}

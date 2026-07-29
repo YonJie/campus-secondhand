@@ -1,0 +1,219 @@
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { fetchCategories } from '../api/categories'
+import { createItem, fetchItemDetail, updateItem } from '../api/items'
+import type { Category } from '../types'
+
+const route = useRoute()
+const router = useRouter()
+
+const isEdit = computed(() => route.name === 'item-edit')
+const itemId = computed(() => String(route.params.id || ''))
+
+const loading = ref(false)
+const saving = ref(false)
+const categories = ref<Category[]>([])
+
+const form = reactive({
+  title: '',
+  description: '',
+  price: undefined as number | undefined,
+  categoryId: '',
+  imageUrl: '',
+})
+
+/**
+ * 重置表单为空
+ */
+function resetForm() {
+  form.title = ''
+  form.description = ''
+  form.price = undefined
+  form.categoryId = ''
+  form.imageUrl = ''
+}
+
+/**
+ * 加载分类与（编辑时）商品详情
+ */
+async function bootstrap() {
+  loading.value = true
+  try {
+    if (!categories.value.length) {
+      const catRes = await fetchCategories()
+      if (catRes.success) categories.value = catRes.data
+    }
+
+    if (isEdit.value) {
+      const res = await fetchItemDetail(itemId.value)
+      if (!res.success) {
+        ElMessage.error(res.message || '商品不存在')
+        router.replace('/my/items')
+        return
+      }
+      form.title = res.data.title
+      form.description = res.data.description
+      form.price = Number(res.data.price)
+      form.categoryId = res.data.categoryId
+      form.imageUrl = res.data.imageUrl
+    } else {
+      resetForm()
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+/**
+ * 提交表单
+ */
+async function onSubmit() {
+  if (!form.title.trim()) {
+    ElMessage.warning('请填写标题')
+    return
+  }
+  if (form.price === undefined || Number(form.price) <= 0) {
+    ElMessage.warning('价格须大于 0')
+    return
+  }
+  if (!form.categoryId) {
+    ElMessage.warning('请选择分类')
+    return
+  }
+
+  saving.value = true
+  try {
+    const payload = {
+      title: form.title.trim(),
+      description: form.description.trim(),
+      price: Number(form.price),
+      categoryId: form.categoryId,
+      imageUrl: form.imageUrl.trim(),
+    }
+    const res = isEdit.value
+      ? await updateItem(itemId.value, payload)
+      : await createItem(payload)
+
+    if (!res.success) {
+      ElMessage.error(res.message || '保存失败')
+      return
+    }
+    ElMessage.success(res.message || '保存成功')
+    router.push(`/items/${res.data.id}`)
+  } finally {
+    saving.value = false
+  }
+}
+
+watch(
+  () => [route.name, route.params.id],
+  () => {
+    bootstrap()
+  },
+)
+
+onMounted(bootstrap)
+</script>
+
+<template>
+  <div v-loading="loading" class="form-page">
+    <p class="eyebrow">{{ isEdit ? 'Edit / 编辑商品' : 'Publish / 发布商品' }}</p>
+    <h1 class="page-title">{{ isEdit ? '编辑商品' : '发布闲置' }}</h1>
+
+    <form class="panel form-panel" @submit.prevent="onSubmit">
+      <el-form label-position="top">
+        <el-form-item label="标题" required>
+          <el-input v-model="form.title" maxlength="80" show-word-limit placeholder="一句话说明闲置" />
+        </el-form-item>
+        <el-form-item label="描述">
+          <el-input
+            v-model="form.description"
+            type="textarea"
+            :rows="5"
+            maxlength="1000"
+            show-word-limit
+            placeholder="成色、交易方式、面交地点等"
+          />
+        </el-form-item>
+        <div class="form-row">
+          <el-form-item label="价格（元）" required class="form-row__item">
+            <el-input-number
+              v-model="form.price"
+              :min="0.01"
+              :precision="2"
+              :step="1"
+              controls-position="right"
+              style="width: 100%"
+            />
+          </el-form-item>
+          <el-form-item label="分类" required class="form-row__item">
+            <el-select v-model="form.categoryId" placeholder="选择分类" style="width: 100%">
+              <el-option
+                v-for="c in categories"
+                :key="c.id"
+                :label="c.name"
+                :value="c.id"
+              />
+            </el-select>
+          </el-form-item>
+        </div>
+        <el-form-item label="图片 URL">
+          <el-input v-model="form.imageUrl" placeholder="https://…" />
+        </el-form-item>
+        <div v-if="form.imageUrl" class="preview">
+          <img :src="form.imageUrl" alt="预览" />
+        </div>
+      </el-form>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" @click="router.back()">取消</button>
+        <button type="submit" class="btn btn-accent" :disabled="saving">
+          {{ saving ? '保存中…' : isEdit ? '保存修改' : '立即发布' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</template>
+
+<style scoped>
+.form-panel {
+  margin-top: 8px;
+  max-width: 720px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.preview {
+  margin-bottom: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 280px;
+  border: 1px solid var(--line);
+}
+
+.preview img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+@media (max-width: 860px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

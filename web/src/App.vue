@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * 根组件：挂载路由出口
+ * 根组件：路由出口由 AppLayout 管理
  */
 </script>
 

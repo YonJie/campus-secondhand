@@ -1,31 +1,164 @@
 <script setup lang="ts">
-import { useAppStore } from '../stores'
+import { onMounted, reactive, ref, watch } from 'vue'
+import { fetchCategories } from '../api/categories'
+import { fetchItems } from '../api/items'
+import ItemCard from '../components/ItemCard.vue'
+import type { Category, Item } from '../types'
 
-const appStore = useAppStore()
+const loading = ref(false)
+const items = ref<Item[]>([])
+const categories = ref<Category[]>([])
+const total = ref(0)
+
+const filters = reactive({
+  keyword: '',
+  categoryId: '',
+  page: 1,
+  pageSize: 8,
+})
+
+/**
+ * 加载分类
+ */
+async function loadCategories() {
+  const res = await fetchCategories()
+  if (res.success) categories.value = res.data
+}
+
+/**
+ * 加载商品列表
+ */
+async function loadItems() {
+  loading.value = true
+  try {
+    const res = await fetchItems({
+      keyword: filters.keyword || undefined,
+      categoryId: filters.categoryId || undefined,
+      page: filters.page,
+      pageSize: filters.pageSize,
+    })
+    if (res.success) {
+      items.value = res.data.list
+      total.value = res.data.total
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+function onSearch() {
+  filters.page = 1
+  loadItems()
+}
+
+function onPageChange(page: number) {
+  filters.page = page
+  loadItems()
+}
+
+watch(
+  () => filters.categoryId,
+  () => {
+    filters.page = 1
+    loadItems()
+  },
+)
+
+onMounted(async () => {
+  await loadCategories()
+  await loadItems()
+})
 </script>
 
 <template>
   <div class="home">
-    <h1>{{ appStore.appName }}</h1>
-    <p>Vue3 + Vite 脚手架已就绪，业务功能待开发。</p>
-    <el-button type="primary">Element Plus 已集成</el-button>
+    <header class="home__hero">
+      <p class="eyebrow">Home / 商品列表</p>
+      <h1 class="page-title">校园布告栏</h1>
+      <p class="home__lead">把闲置钉上布告栏，让下一任主人来揭下它。</p>
+    </header>
+
+    <div class="toolbar panel">
+      <el-input
+        v-model="filters.keyword"
+        clearable
+        placeholder="搜索标题关键词"
+        class="toolbar__search"
+        @keyup.enter="onSearch"
+        @clear="onSearch"
+      />
+      <el-select
+        v-model="filters.categoryId"
+        clearable
+        placeholder="全部分类"
+        class="toolbar__select"
+      >
+        <el-option
+          v-for="c in categories"
+          :key="c.id"
+          :label="c.name"
+          :value="c.id"
+        />
+      </el-select>
+      <button type="button" class="btn btn-primary" @click="onSearch">搜索</button>
+    </div>
+
+    <div v-loading="loading" class="grid">
+      <ItemCard
+        v-for="(item, index) in items"
+        :key="item.id"
+        :item="item"
+        :index="index"
+      />
+    </div>
+
+    <el-empty v-if="!loading && items.length === 0" description="暂无商品" />
+
+    <div v-if="total > filters.pageSize" class="pager">
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="total"
+        :page-size="filters.pageSize"
+        :current-page="filters.page"
+        @current-change="onPageChange"
+      />
+    </div>
   </div>
 </template>
 
 <style scoped>
-.home {
-  max-width: 640px;
-  margin: 4rem auto;
-  text-align: center;
+.home__hero {
+  margin-bottom: 22px;
 }
 
-.home h1 {
-  margin-bottom: 0.75rem;
-  font-size: 1.75rem;
+.home__lead {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 15px;
 }
 
-.home p {
-  margin-bottom: 1.5rem;
-  color: #606266;
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 16px 18px;
+}
+
+.toolbar__search {
+  flex: 1;
+  min-width: 180px;
+}
+
+.toolbar__select {
+  width: 160px;
+}
+
+.pager {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
 }
 </style>
